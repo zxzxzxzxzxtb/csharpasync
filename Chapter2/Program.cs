@@ -13,8 +13,9 @@ namespace Chapter2
             //Task<string> slt = DelayResult<string>("hello", TimeSpan.FromSeconds(2));
             //Console.WriteLine(slt.Result);
             //Task<string> slt = DownloadStringWithRetries("http://www.ofmonkey2.com");
-            Task<string> slt = DownloadStringWithTimeout("http://www.baidu.com");
-            Console.WriteLine(slt);
+            //Task<string> slt = DownloadStringWithTimeout("http://www.baidu.com");
+            Task<string> slt = DownloadAllAsync(new List<string>() { "http://www.baidu.com", "http://www.qq.com" });
+            Console.WriteLine(slt.Result);
             Console.Read();
         }
 
@@ -70,7 +71,7 @@ namespace Chapter2
         } 
         #endregion
 
-        #region 报告进度
+        #region 2.3报告进度
         static async Task MyMethodAsync(IProgress<double> progress = null) {
             double percentComplete = 0;
             bool done = false;
@@ -91,5 +92,81 @@ namespace Chapter2
 
         #endregion
 
+        #region 2.4等待一组任务完成
+        static async Task<string> DownloadAllAsync(IEnumerable<string> urls) {
+            var httpClient = new HttpClient();
+            var downloads = urls.Select(url => httpClient.GetStringAsync(url));
+            Task<string>[] downloadTasks = downloads.ToArray();
+            string[] htmlPages = await Task.WhenAll(downloadTasks);
+            return string.Concat(htmlPages);
+        }
+
+        static async Task ThrowNotImplementedExceptionAsync() {
+            throw new NotImplementedException();
+        }
+
+        static async Task ThrowInvalidOperationExceptionAsync() {
+            throw new InvalidOperationException();
+        }
+
+        /// <summary>
+        /// 随机捕获一个异常
+        /// </summary>
+        /// <returns></returns>
+        static async Task ObserveOneExceptionAsync() {
+            var task1 = ThrowNotImplementedExceptionAsync();
+            var task2 = ThrowInvalidOperationExceptionAsync();
+            try {
+                await Task.WhenAll(task1, task2);
+            } catch (Exception ex) {
+
+            }
+        }
+
+        /// <summary>
+        /// 捕获所有异常
+        /// </summary>
+        /// <returns></returns>
+        static async Task ObserveAllExceptionAsync() {
+            var task1 = ThrowNotImplementedExceptionAsync();
+            var task2 = ThrowInvalidOperationExceptionAsync();
+            Task alltasks = Task.WhenAll(task1, task2);
+            try {
+                await alltasks;
+            } catch {
+                AggregateException allExceptions = alltasks.Exception;
+            }
+        }
+        #endregion
+
+        #region 2.5等待何意一个任务完成
+        static async Task<int> FirstRespondingUrlAsync(string urlA, string urlB) {
+            var httpClient = new HttpClient();
+            Task<byte[]> downloadTaskA = httpClient.GetByteArrayAsync(urlA);
+            Task<byte[]> downloadTaskB = httpClient.GetByteArrayAsync(urlB);
+            Task<byte[]> completedTask = await Task.WhenAny(downloadTaskA, downloadTaskB);
+            byte[] data = await completedTask;
+            return data.Length;
+        }
+        #endregion
+
+        #region 任务完成时的处理
+        static async Task<int> DelayAndReturnAsync(int val) {
+            await Task.Delay(TimeSpan.FromSeconds(val));
+            return val;
+        }
+        
+        static async Task ProcessTasksAsync() {
+            Task<int> TaskA = DelayAndReturnAsync(2);
+            Task<int> TaskB = DelayAndReturnAsync(3);
+            Task<int> TaskC = DelayAndReturnAsync(1);
+            var tasks = new[] { TaskA, TaskB, TaskC };
+            var processingTasks = tasks.Select(async t => {
+                var result = await t;
+                Console.WriteLine(result);
+            });
+            await Task.WhenAll(processingTasks);
+        }
+        #endregion
     }
 }
