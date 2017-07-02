@@ -32,7 +32,7 @@ namespace Chapter2
 
                     }
                     await Task.Delay(nextDelay);
-                    nextDelay = nextDelay + nextDelay;
+                    nextDelay = nextDelay + nextDelay;  
                 }
                 return await client.GetStringAsync(uri);
             }
