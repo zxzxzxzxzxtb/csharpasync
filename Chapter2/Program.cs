@@ -150,7 +150,7 @@ namespace Chapter2
         }
         #endregion
 
-        #region 任务完成时的处理
+        #region 2.6任务完成时的处理
         static async Task<int> DelayAndReturnAsync(int val) {
             await Task.Delay(TimeSpan.FromSeconds(val));
             return val;
@@ -166,6 +166,36 @@ namespace Chapter2
                 Console.WriteLine(result);
             });
             await Task.WhenAll(processingTasks);
+        }
+        #endregion
+
+        #region 2.7避免上下文延续
+        async Task ResumeOnContextAsync() {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            //这个方法在同一个上下文中恢复运行
+        }
+
+        async Task ResumeWithoutContextAsync() {
+            await Task.Delay(TimeSpan.FromSeconds(1)).ConfigureAwait(false);
+            //这个方法在恢复运行时，会丢弃上下文
+        }
+        #endregion
+
+        #region 2.8处理async Task方法的异常
+        static async Task ThrowExceptionAsync() {
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            throw new InvalidOperationException("Test");
+        }
+
+        static async Task TestAsync() {
+            // 抛出异常并将其存储在Task中
+            Task task = ThrowExceptionAsync();
+            try {
+                // Task对象被await调用，异常在这里两次被转发
+                await task;
+            } catch (InvalidOperationException) {
+                // 异常被正确地捕获
+            }
         }
         #endregion
     }
